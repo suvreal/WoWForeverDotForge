@@ -1,0 +1,26 @@
+FOREVER ADDONS
+
+Spuštění: nabídka aplikací nebo ikonka Forever Addons na ploše.
+Případně: python3 app.py z adresáře aplikace.
+
+CurseForge: záložka Procházet CurseForge -> Nastavit API klíč -> Hledat.
+Je potřeba vlastní CurseForge API klíč, nikoli přihlašovací heslo.
+Klíč zadávej přímo do aplikace; nikoli do chatu nebo repozitáře.
+Odkaz na žádost o API klíč je v dialogu nastavení.
+
+Hledej název, autora nebo ID projektu. Prázdné hledání nabídne populární
+addony pro tvou verzi Forever. Výsledky lze řadit a procházet po stránkách.
+Tlačítko Nainstalovat ověří stabilní vydání, stažení a obsah ZIPu.
+Po instalaci funguje i Aktualizovat vše. Povinné závislosti se instalují
+zvlášť; jejich názvy a ID aplikace vypíše. Někteří autoři stahování přes
+jiné správce nepovolují; v tom případě použij stránku addonu a import ZIPu.
+
+GitHub: vlož vlastník/repozitář. ZIPy importuj tlačítkem Import ZIPu.
+Aktualizace ručních ZIPů probíhá opětovným importem nového ZIPu.
+Před změnami ukonči WoW a během instalace jej nespouštěj.
+Zálohy: ~/.local/share/forever-addons/backups.
+Kontrola souborů porovnává s manifestem při instalaci; není to antivir.
+Obnovit poslední zálohu nahrazuje současné soubory dotčených addonů
+stavem před poslední změnou. Nastavení postav ve WTF se nemění.
+
+Úplný návod, omezení a příkazy jsou v README.md vedle tohoto souboru.
