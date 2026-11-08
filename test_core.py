@@ -36,7 +36,7 @@ class Packages(unittest.TestCase):
 
     def test_install_update_restore_and_settings(self):
         self.install()
-        self.assertEqual(self.m.inventory()[0]['status'], 'V pořádku')
+        self.assertEqual(self.m.inventory()[0]['status'], 'Healthy')
         self.install('2')
         self.assertEqual(self.m.inventory()[0]['version'], '2')
         self.m.restore()
@@ -48,27 +48,27 @@ class Packages(unittest.TestCase):
         self.m.remove('test')
         self.assertEqual(self.m.inventory(), [])
         self.m.restore()
-        self.assertEqual(self.m.inventory()[0]['status'], 'V pořádku')
+        self.assertEqual(self.m.inventory()[0]['status'], 'Healthy')
 
     def test_game_running_blocks_changes(self):
         fake = self.root / 'cmdline'
         fake.write_bytes(b'wine\x00C:\\WoW\\Wow.exe\x00')
         with patch('core.Path.glob', return_value=[fake]):
-            with self.assertRaisesRegex(ValueError, 'ukonči WoW'):
+            with self.assertRaisesRegex(ValueError, 'Exit WoW'):
                 self.m.idle()
 
     def test_local_changes_block_update(self):
         self.install()
         p = self.m.addons / 'Example/main.lua'
         p.write_text('user edit')
-        with self.assertRaisesRegex(ValueError, 'Lokální změna'):
+        with self.assertRaisesRegex(ValueError, 'Local changes'):
             self.install('2')
         self.assertEqual(p.read_text(), 'user edit')
 
     def test_missing_and_extra_files_detected(self):
         self.install()
         (self.m.addons / 'Example/extra.lua').touch()
-        self.assertNotEqual(self.m.inventory()[0]['status'], 'V pořádku')
+        self.assertNotEqual(self.m.inventory()[0]['status'], 'Healthy')
         (self.m.addons / 'Example/main.lua').unlink()
         with self.assertRaises(ValueError):
             self.install('2')
@@ -93,12 +93,12 @@ class Packages(unittest.TestCase):
 
     def test_unmanaged_conflict(self):
         (self.m.addons / 'Example').mkdir()
-        with self.assertRaisesRegex(ValueError, 'již existuje'):
+        with self.assertRaisesRegex(ValueError, 'already exists'):
             self.install()
 
     def test_missing_dependency(self):
         payload = archive(extra={'Example/Example_Forever.toc': '## Interface: 16001\n## Dependencies: Missing\n'})
-        with self.assertRaisesRegex(ValueError, 'chybí závislost'):
+        with self.assertRaisesRegex(ValueError, 'missing dependency'):
             self.m.install(payload, 'test', '1')
 
     def test_rollback_on_copy_failure(self):
@@ -116,7 +116,7 @@ class Packages(unittest.TestCase):
             with self.assertRaises(OSError):
                 self.install('2')
         self.assertEqual(self.m.inventory()[0]['version'], '1')
-        self.assertEqual(self.m.inventory()[0]['status'], 'V pořádku')
+        self.assertEqual(self.m.inventory()[0]['status'], 'Healthy')
 
     def test_github_compatible_asset_selection(self):
         releases = [{'draft': False, 'prerelease': False, 'tag_name': 'v2', 'assets': [
@@ -129,7 +129,7 @@ class Packages(unittest.TestCase):
         with patch('core.fetch', side_effect=fake):
             self.m.github('example/addon')
         self.assertEqual(self.m.inventory()[0]['version'], '2')
-        self.assertIn('aktuální', self.check_with_fake(fake))
+        self.assertIn('up to date', self.check_with_fake(fake))
 
     def check_with_fake(self, fake):
         with patch('core.fetch', side_effect=fake):

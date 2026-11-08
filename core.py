@@ -37,10 +37,10 @@ def digest(path):
 def manifest(root):
     result = {}
     if root.is_symlink():
-        raise ValueError('Symlink v cestě addonu: ' + str(root))
+        raise ValueError('Symlink in addon path: ' + str(root))
     for p in sorted(root.rglob('*')):
         if p.is_symlink():
-            raise ValueError('Symlink v addonu: ' + str(p))
+            raise ValueError('Symlink inside addon: ' + str(p))
         if p.is_file():
             result[p.relative_to(root).as_posix()] = digest(p)
     return result
@@ -63,14 +63,14 @@ def metadata(folder):
 
 def fetch(url, limit=LIMIT):
     if not url.startswith('https://'):
-        raise ValueError('Stahování vyžaduje HTTPS.')
+        raise ValueError('Downloads require HTTPS.')
     req = urllib.request.Request(url, headers={'User-Agent': 'ForeverAddons/1.0', 'Accept': 'application/vnd.github+json' if 'api.github.com/' in url else 'application/octet-stream'})
     with urllib.request.urlopen(req, timeout=25) as response:
         if not response.url.startswith('https://'):
-            raise ValueError('Nezabezpečené přesměrování.')
+            raise ValueError('Insecure redirect.')
         data = response.read(limit + 1)
     if len(data) > limit:
-        raise ValueError('Soubor překročil velikostní limit.')
+        raise ValueError('The file exceeds the size limit.')
     return data
 
 
@@ -79,7 +79,7 @@ def unpack(data, destination, interface):
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         entries = z.infolist()
         if len(entries) > 25000 or sum(i.file_size for i in entries) > 400 * 1024 * 1024:
-            raise ValueError('Příliš velký archiv.')
+            raise ValueError('The archive is too large.')
         seen = set()
         for i in entries:
             p = PurePosixPath(i.filename)
@@ -87,25 +87,25 @@ def unpack(data, destination, interface):
             if (p.is_absolute() or '..' in p.parts or '\\' in i.filename or ':' in i.filename
                     or not p.parts or any(c in i.filename for c in '\x00\n\r')
                     or stat.S_ISLNK(mode)):
-                raise ValueError('Nebezpečná cesta v ZIPu: ' + i.filename)
+                raise ValueError('Unsafe path in ZIP: ' + i.filename)
             key = str(p).casefold()
             if key in seen:
-                raise ValueError('Duplicitní cesta v ZIPu.')
+                raise ValueError('Duplicate path in ZIP.')
             seen.add(key)
         z.extractall(destination)
     roots = [d for d in destination.iterdir() if d.is_dir() and list(d.glob('*.toc'))]
     if not roots:
-        raise ValueError('ZIP musí obsahovat složky addonů s .toc přímo uvnitř (distribuční balíček).')
+        raise ValueError('The ZIP must contain addon folders with .toc files directly inside them (a distribution package).')
     for folder in roots:
         if not re.fullmatch(r'[A-Za-z0-9_+.-]+', folder.name) or folder.name.startswith('.'):
-            raise ValueError('Nepodporovaný název složky addonu.')
+            raise ValueError('Unsupported addon folder name.')
         info = metadata(folder)
         versions = re.findall(r'\d+', info.get('interface', ''))
         if str(interface) not in versions:
-            raise ValueError(f'{folder.name}: chybí deklarace Interface {interface}.')
+            raise ValueError(f'{folder.name}: missing declaration for Interface {interface}.')
         for p in folder.rglob('*'):
             if p.suffix.lower() in {'.exe', '.dll', '.so', '.bat', '.cmd', '.ps1', '.sh'}:
-                raise ValueError('Spustitelný soubor v balíčku: ' + p.name)
+                raise ValueError('Executable file in package: ' + p.name)
     return roots
 
 
@@ -113,10 +113,10 @@ class Manager:
     def __init__(self, game=GAME, data=DATA):
         self.game, self.data = Path(game), Path(data)
         if self.game.name != '_forever_' or not (self.game / 'Wow.exe').exists():
-            raise ValueError('Není to instalace _forever_ s Wow.exe: ' + str(self.game))
+            raise ValueError('Not a _forever_ installation containing Wow.exe: ' + str(self.game))
         self.addons = self.game / 'Interface/AddOns'
         if any(p.is_symlink() for p in [self.game, self.game / 'Interface', self.addons]):
-            raise ValueError('Cílová cesta nesmí být symlink.')
+            raise ValueError('The destination path must not be a symlink.')
         self.data.mkdir(parents=True, exist_ok=True)
         self.addons.mkdir(parents=True, exist_ok=True)
         self.state_file = self.data / 'state.json'
@@ -124,7 +124,7 @@ class Manager:
         config = self.game / 'WTF/Config.wtf'
         m = re.search(r'SET engineSurveyPatch "(\d+)"', config.read_text() if config.exists() else '')
         if not m:
-            raise ValueError('Nelze zjistit Interface z WTF/Config.wtf; spusť hru a ukonči ji.')
+            raise ValueError('Unable to detect Interface from WTF/Config.wtf; start the game and exit it first.')
         self.interface = int(m.group(1))
 
     @contextlib.contextmanager
@@ -133,7 +133,7 @@ class Manager:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                raise ValueError('Jiná operace správce právě běží.')
+                raise ValueError('Another package-manager operation is running.')
             self.state = read_json(self.state_file, self.state)
             yield
 
@@ -142,11 +142,11 @@ class Manager:
             try:
                 args = cmdline.read_bytes().decode(errors='replace').split('\x00')
                 if any(arg.replace('\\', '/').rsplit('/', 1)[-1].lower() in {'wow.exe', 'wowb.exe'} for arg in args):
-                    raise ValueError('Nejdřív ukonči WoW; za běhu hry neměním addony.')
+                    raise ValueError('Exit WoW first; addons cannot be changed while the game is running.')
             except (FileNotFoundError, PermissionError, ProcessLookupError):
                 pass
         if (self.data / 'pending.json').exists():
-            raise ValueError('Nedokončená operace. Použij obnovu poslední zálohy.')
+            raise ValueError('An unfinished operation was found. Restore the latest backup first.')
 
     def inventory(self):
         owners = {name: key for key, p in self.state['packages'].items() for name in p['folders']}
@@ -156,16 +156,16 @@ class Manager:
             folder = self.addons / name
             key = owners.get(name)
             info = metadata(folder) if folder.exists() else {}
-            status = 'Nespravovaný'
+            status = 'Unmanaged'
             if key:
                 expected = self.state['packages'][key]['hashes'][name]
                 try:
                     actual = manifest(folder) if folder.exists() else {}
-                    status = 'V pořádku' if actual == expected else 'Změněný / chybí soubory'
+                    status = 'Healthy' if actual == expected else 'Modified / missing files'
                 except ValueError:
-                    status = 'Symlink – zablokováno'
+                    status = 'Symlink — blocked'
             rows.append({'folder': name, 'title': info.get('title', name), 'version': info.get('version', '—'),
-                         'status': status, 'source': key or 'Ruční instalace',
+                         'status': status, 'source': key or 'Manual installation',
                          'interface': info.get('interface', '—')})
         return rows
 
@@ -195,17 +195,17 @@ class Manager:
                     save_json(pending, record_pending)
             backups = sorted((self.data / 'backups').glob('*'))
             if not backups:
-                raise ValueError('Žádná záloha k obnově.')
+                raise ValueError('No backup is available to restore.')
             target = Path(record_pending['backup']) if record_pending else backups[-1]
             self._restore(target)
-            return 'Obnovena záloha ' + target.name
+            return 'Restored backup ' + target.name
 
     def _restore(self, target):
         record = read_json(target / 'record.json', {})
         for name in record['names']:
             dst = self.addons / name
             if dst.is_symlink():
-                raise ValueError('Cílový addon je symlink; obnova zastavena.')
+                raise ValueError('The destination addon is a symlink; restore stopped.')
             if dst.exists():
                 shutil.rmtree(dst)
             if (target / name).exists():
@@ -223,23 +223,23 @@ class Manager:
             for name in names:
                 for other, package in self.state['packages'].items():
                     if other != key and name.casefold() in [n.casefold() for n in package['folders']]:
-                        raise ValueError('Složku vlastní jiný balíček: ' + name)
+                        raise ValueError('The folder is owned by another package: ' + name)
                 if (self.addons / name).exists() and (not old or name not in old['folders']):
-                    raise ValueError('Složka již existuje mimo tento balíček: ' + name)
+                    raise ValueError('The folder already exists outside this package: ' + name)
                 if any(p.name.casefold() == name.casefold() and p.name != name for p in self.addons.iterdir()):
-                    raise ValueError('Kolize velikosti písmen: ' + name)
+                    raise ValueError('Case-insensitive folder name collision: ' + name)
             if old:
                 for name in old['folders']:
                     path = self.addons / name
                     if (manifest(path) if path.exists() else {}) != old['hashes'][name]:
-                        raise ValueError('Lokální změna nebo poškození; nejdřív obnov zálohu nebo vyřeš soubory: ' + name)
+                        raise ValueError('Local changes or corruption detected; restore a backup or resolve the files first: ' + name)
             # Required dependencies must exist now or be included in the same package.
             removed = set(old['folders'] if old else []) - set(names)
             for root in roots:
                 info = metadata(root)
                 for dep in re.split(r'[,\s]+', info.get('dependencies', info.get('requireddeps', ''))):
                     if dep and dep not in names and (dep in removed or not (self.addons / dep).is_dir()):
-                        raise ValueError(f'{root.name}: chybí závislost {dep}; nainstaluj ji nejdřív.')
+                        raise ValueError(f'{root.name}: missing dependency {dep}; install it first.')
             touched = sorted(set(names) | set(old['folders'] if old else []))
             backup = self.backup(touched)
             try:
@@ -257,18 +257,18 @@ class Manager:
             except Exception:
                 self._restore(backup)
                 raise
-            return 'Nainstalováno: ' + ', '.join(names) + ' • ' + version
+            return 'Installed: ' + ', '.join(names) + ' • ' + version
 
     def remove(self, key):
         with self.lock():
             self.idle()
             package = self.state['packages'].get(key)
             if not package:
-                raise ValueError('Odstraňovat lze pouze spravovaný balíček.')
+                raise ValueError('Only managed packages can be removed.')
             for name in package['folders']:
                 path = self.addons / name
                 if (manifest(path) if path.exists() else {}) != package['hashes'][name]:
-                    raise ValueError('Addon má lokální změny; odstranění zastaveno: ' + name)
+                    raise ValueError('The addon has local changes; removal stopped: ' + name)
             backup = self.backup(package['folders'])
             try:
                 for name in package['folders']:
@@ -279,12 +279,12 @@ class Manager:
             except Exception:
                 self._restore(backup)
                 raise
-            return 'Odstraněno se zálohou: ' + key
+            return 'Removed with a backup: ' + key
 
     def install_zip(self, path):
         path = Path(path).expanduser()
         if path.stat().st_size > LIMIT:
-            raise ValueError('ZIP je větší než 100 MB.')
+            raise ValueError('The ZIP exceeds 100 MB.')
         payload = path.read_bytes()
         with tempfile.TemporaryDirectory() as temp:
             roots = unpack(payload, Path(temp), self.interface)
@@ -294,7 +294,7 @@ class Manager:
     def candidate(self, repository):
         repository = repository.strip().removeprefix('https://github.com/').rstrip('/').removesuffix('.git')
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
-            raise ValueError('Zadej GitHub vlastník/repozitář nebo odkaz na repozitář.')
+            raise ValueError('Enter a GitHub owner/repository or repository URL.')
         releases = json.loads(fetch('https://api.github.com/repos/' + repository + '/releases?per_page=15', 8 * 1024 * 1024))
         for release in releases:
             if release['draft'] or release['prerelease']:
@@ -308,14 +308,14 @@ class Manager:
                 payload = fetch(asset['browser_download_url'])
                 checksum = asset.get('digest')
                 if checksum and checksum.startswith('sha256:') and hashlib.sha256(payload).hexdigest() != checksum[7:]:
-                    raise ValueError('Nesouhlasí SHA-256 staženého balíčku.')
+                    raise ValueError('The downloaded package SHA-256 checksum does not match.')
                 try:
                     with tempfile.TemporaryDirectory() as temp:
                         unpack(payload, Path(temp), self.interface)
                 except (ValueError, zipfile.BadZipFile):
                     continue
                 return repository, release['tag_name'], payload
-        raise ValueError('V posledních 15 vydáních není stabilní distribuční ZIP pro Interface ' + str(self.interface))
+        raise ValueError('No stable distribution ZIP for this Interface was found in the latest 15 releases: ' + str(self.interface))
 
     def github(self, repository):
         repo, version, payload = self.candidate(repository)
@@ -342,7 +342,7 @@ class Manager:
             for mod_id in missing:
                 dependency = client.request(f'mods/{int(mod_id)}')['data']
                 descriptions.append(f"{dependency['name']} (ID {mod_id})")
-            raise ValueError('Nejdřív nainstaluj povinné závislosti z katalogu: ' + ', '.join(descriptions))
+            raise ValueError('Install these required dependencies from the catalog first: ' + ', '.join(descriptions))
         payload = client.download(file)
         source = {'provider': 'curseforge', 'mod_id': mod['id'], 'file_id': file['id'],
                   'file_date': file.get('fileDate', ''), 'name': mod['name']}
@@ -352,42 +352,42 @@ class Manager:
         messages = []
         for key, package in list(self.state['packages'].items()):
             if not package.get('source'):
-                messages.append(key + ': ruční ZIP – aktualizace importem nového ZIPu')
+                messages.append(key + ': manual ZIP — import a newer ZIP to update')
                 continue
             try:
                 if isinstance(package['source'], dict):
                     from curseforge import Client
                     source = package['source']
                     if source.get('provider') != 'curseforge':
-                        raise ValueError('Neznámý zdroj balíčku.')
+                        raise ValueError('Unknown package source.')
                     client = Client(self.interface)
                     mod = client.mod(source['mod_id'])
                     file = client.latest_file(mod['id'])
                     name = mod['name']
                     if file['id'] == source['file_id']:
-                        messages.append(name + ': aktuální')
+                        messages.append(name + ': up to date')
                     elif file.get('fileDate', '') < source.get('file_date', ''):
-                        messages.append(name + ': katalog nabízí starší soubor; verzi nesnižuji')
+                        messages.append(name + ': the catalog offers an older file; skipping downgrade')
                     elif apply:
                         messages.append(self._install_curse_file(client, mod, file))
                     else:
-                        messages.append(name + ': dostupný kompatibilní balíček ' + file['displayName'])
+                        messages.append(name + ': compatible package available ' + file['displayName'])
                     continue
                 repo, version, payload = self.candidate(package['source'])
                 sha = hashlib.sha256(payload).hexdigest()
                 if sha == package['archive_sha256']:
-                    messages.append(repo + ': aktuální')
+                    messages.append(repo + ': up to date')
                 elif apply:
                     messages.append(self.install(payload, key, version, repo))
                 else:
-                    messages.append(repo + ': dostupný kompatibilní balíček ' + version)
+                    messages.append(repo + ': compatible package available ' + version)
             except Exception as e:
                 messages.append(key + ': ' + str(e))
-        return '\n'.join(messages) or 'Žádné spravované addony. Přidej GitHub repozitář nebo ZIP.'
+        return '\n'.join(messages) or 'No managed addons. Add a GitHub repository or import a ZIP.'
 
     def startup(self, mode):
         if mode not in {'off', 'check', 'update'}:
-            raise ValueError('Neplatný režim.')
+            raise ValueError('Invalid startup mode.')
         with self.lock():
             self.state['startup'] = mode
             save_json(self.state_file, self.state)

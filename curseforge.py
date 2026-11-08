@@ -27,7 +27,7 @@ def save_key(value, path=KEY_FILE):
     path = Path(path)
     value = value.strip()
     if '\n' in value or '\r' in value:
-        raise ValueError('API klíč musí být na jednom řádku.')
+        raise ValueError('The API key must be a single line.')
     if not value:
         path.unlink(missing_ok=True)
         return
@@ -48,7 +48,7 @@ def game_version(interface):
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         # Never forward an x-api-key to a different host, or silently change API host.
-        raise ValueError('CurseForge API vrátilo neočekávané přesměrování.')
+        raise ValueError('The CurseForge API returned an unexpected redirect.')
 
 
 class Client:
@@ -58,9 +58,9 @@ class Client:
 
     def request(self, endpoint, **params):
         if not self.key:
-            raise ValueError('Nejdřív nastav vlastní CurseForge API klíč v katalogu.')
+            raise ValueError('Set your own CurseForge API key in the catalog first.')
         if any(c in self.key for c in '\r\n'):
-            raise ValueError('Uložený CurseForge API klíč má neplatný formát.')
+            raise ValueError('The configured CurseForge API key has an invalid format.')
         url = API + endpoint
         if params:
             url += '?' + urllib.parse.urlencode(params)
@@ -70,24 +70,24 @@ class Client:
             with urllib.request.build_opener(NoRedirect()).open(req, timeout=25) as response:
                 raw = response.read(8 * 1024 * 1024 + 1)
             if len(raw) > 8 * 1024 * 1024:
-                raise ValueError('Příliš velká odpověď katalogu.')
+                raise ValueError('The catalog response is too large.')
             return json.loads(raw)
         except urllib.error.HTTPError as error:
-            messages = {401: 'Neplatný CurseForge API klíč.',
-                        403: 'CurseForge odmítl přístup. Ověř klíč a oprávnění API.',
-                        404: 'Addon nebo soubor už v katalogu není.',
-                        429: 'CurseForge omezil počet požadavků. Zkus to později.'}
+            messages = {401: 'Invalid CurseForge API key.',
+                        403: 'CurseForge denied access. Check your API key and permissions.',
+                        404: 'The addon or file is no longer in the catalog.',
+                        429: 'CurseForge rate limit reached. Try again later.'}
             raise ValueError(messages.get(error.code, f'CurseForge API: HTTP {error.code}.')) from None
         except (urllib.error.URLError, TimeoutError, OSError):
-            raise ValueError('CurseForge není dostupný. Zkontroluj připojení k internetu.') from None
+            raise ValueError('CurseForge is unavailable. Check your internet connection.') from None
 
     def search(self, query='', index=0, sort=2):
         if index < 0 or index + PAGE_SIZE > 10000:
-            raise ValueError('Požadovaná stránka je mimo rozsah katalogu.')
+            raise ValueError('The requested page is outside the catalog range.')
         query = query.strip()
         if query.isdecimal():
             if index:
-                raise ValueError('Hledání podle ID má pouze jednu stránku.')
+                raise ValueError('Searching by ID has only one page.')
             mod = self.request(f'mods/{int(query)}')['data']
             self.latest_file(int(query))
             response = {'data': [mod], 'pagination': {'resultCount': 1, 'totalCount': 1}}
@@ -117,14 +117,14 @@ class Client:
     def mod(self, mod_id):
         mod_id = int(mod_id)
         if mod_id <= 0:
-            raise ValueError('Neplatné ID addonu.')
+            raise ValueError('Invalid addon ID.')
         mod = self.request(f'mods/{mod_id}')['data']
         if mod.get('id') != mod_id or mod.get('gameId') != 1 or mod.get('classId') != 1:
-            raise ValueError('Projekt není WoW addon.')
+            raise ValueError('The project is not a WoW addon.')
         if not mod.get('isAvailable', True):
-            raise ValueError('Addon už není dostupný.')
+            raise ValueError('The addon is no longer available.')
         if mod.get('allowModDistribution') is False:
-            raise ValueError('Autor nepovoluje distribuci přes jiné správce. Použij stránku addonu a import ZIPu.')
+            raise ValueError('The author does not allow third-party distribution. Use the addon website and import its ZIP.')
         return mod
 
     def latest_file(self, mod_id):
@@ -138,7 +138,7 @@ class Client:
             if len(response['data']) < 50 or (count is not None and index + 50 >= count):
                 break
             if index >= 200:
-                raise ValueError('Projekt má příliš mnoho souborů. Vyber konkrétní ZIP na webu.')
+                raise ValueError('The project has too many files. Select a specific ZIP on its website.')
         compatible = [f for f in files if f.get('modId') == int(mod_id) and f.get('gameId') == 1
                       and self.version in f.get('gameVersions', [])
                       and f.get('releaseType') == 1 and f.get('isAvailable')
@@ -146,29 +146,29 @@ class Client:
                       and not f.get('isEarlyAccessContent')
                       and f.get('fileName', '').lower().endswith('.zip')]
         if not compatible:
-            raise ValueError(f'Addon nemá dostupný stabilní ZIP pro WoW {self.version}.')
+            raise ValueError(f'The addon has no available stable ZIP for WoW {self.version}.')
         return max(compatible, key=lambda f: (f.get('fileDate', ''), f['id']))
 
     def download(self, file):
         from core import LIMIT, fetch
         if not 0 < file.get('fileLength', 0) <= LIMIT:
-            raise ValueError('Soubor překračuje limit 100 MB nebo má neplatnou velikost.')
+            raise ValueError('The file exceeds 100 MB or has an invalid size.')
         url = file.get('downloadUrl')
         if not url:
             url = self.request(f"mods/{file['modId']}/files/{file['id']}/download-url").get('data')
         if not url:
-            raise ValueError('CurseForge neposkytuje stažení přes API. Použij web a import ZIPu.')
+            raise ValueError('CurseForge does not provide an API download. Use the website and import the ZIP.')
         # No API headers, no fabricated CDN URL when the author disallows downloading.
         payload = fetch(url)
         if len(payload) != file['fileLength']:
-            raise ValueError('Nesouhlasí velikost staženého ZIPu.')
+            raise ValueError('The downloaded ZIP size does not match.')
         verified = False
         for checksum in file.get('hashes', []):
             algo = {1: 'sha1', 2: 'md5'}.get(checksum['algo'])
             if algo:
                 if hashlib.new(algo, payload).hexdigest().lower() != checksum['value'].lower():
-                    raise ValueError('Nesouhlasí kontrolní součet ZIPu z CurseForge.')
+                    raise ValueError('The CurseForge ZIP checksum does not match.')
                 verified = True
         if not verified:
-            raise ValueError('CurseForge neposkytl podporovaný kontrolní součet souboru.')
+            raise ValueError('CurseForge did not provide a supported file checksum.')
         return payload

@@ -43,7 +43,7 @@ class Api(unittest.TestCase):
 
     def test_missing_key_does_not_make_network_request(self):
         with patch('urllib.request.build_opener') as opener:
-            with self.assertRaisesRegex(ValueError, 'nastav vlastní'):
+            with self.assertRaisesRegex(ValueError, 'Set your own'):
                 Client(16001, key='').search()
             opener.assert_not_called()
 
@@ -86,14 +86,14 @@ class Api(unittest.TestCase):
         with patch.object(Client, 'request', return_value={'data': [old, wrong, beta, stable, bad]}):
             self.assertEqual(Client(16001, key='test').latest_file(42)['id'], 100)
         with patch.object(Client, 'request', return_value={'data': [wrong, beta, bad]}):
-            with self.assertRaisesRegex(ValueError, 'stabilní ZIP'):
+            with self.assertRaisesRegex(ValueError, 'stable ZIP'):
                 Client(16001, key='test').latest_file(42)
 
     def test_distribution_disallowed(self):
         value = mod()
         value['allowModDistribution'] = False
         with patch.object(Client, 'request', return_value={'data': value}):
-            with self.assertRaisesRegex(ValueError, 'Autor nepovoluje'):
+            with self.assertRaisesRegex(ValueError, 'The author does not allow'):
                 Client(16001, key='test').mod(42)
 
     def test_download_checks_hash_and_length(self):
@@ -104,17 +104,17 @@ class Api(unittest.TestCase):
             fetch.assert_called_once_with('https://cdn.example/addon.zip')
         file['hashes'][0]['value'] = '0' * 40
         with patch('core.fetch', return_value=payload):
-            with self.assertRaisesRegex(ValueError, 'kontrolní součet'):
+            with self.assertRaisesRegex(ValueError, 'checksum'):
                 Client(16001, key='test').download(file)
         with patch('core.fetch', return_value=b'bad'):
-            with self.assertRaisesRegex(ValueError, 'velikost'):
+            with self.assertRaisesRegex(ValueError, 'size'):
                 Client(16001, key='test').download(file)
 
     def test_missing_download_url_no_fabricated_cdn(self):
         file = release()
         file['downloadUrl'] = None
         with patch.object(Client, 'request', return_value={'data': None}), patch('core.fetch') as fetch:
-            with self.assertRaisesRegex(ValueError, 'neposkytuje stažení'):
+            with self.assertRaisesRegex(ValueError, 'does not provide an API download'):
                 Client(16001, key='test').download(file)
             fetch.assert_not_called()
 
@@ -129,7 +129,7 @@ class Api(unittest.TestCase):
                 self.assertNotIn(client.key, str(caught.exception))
 
     def test_redirect_never_forwards_key(self):
-        with self.assertRaisesRegex(ValueError, 'přesměrování'):
+        with self.assertRaisesRegex(ValueError, 'redirect'):
             NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.test')
 
 
@@ -146,11 +146,11 @@ class Integration(unittest.TestCase):
             return {'data': mod()}
         with patch.object(Client, 'request', request), patch('core.fetch', side_effect=lambda url: payload):
             self.m.curseforge(42)
-            self.assertIn('aktuální', self.m.updates())
-            self.assertEqual(self.m.inventory()[0]['status'], 'V pořádku')
+            self.assertIn('up to date', self.m.updates())
+            self.assertEqual(self.m.inventory()[0]['status'], 'Healthy')
             payload = archive('2')
             current = release(101, payload=payload, date='2026-11-09T12:00:00Z')
-            self.assertIn('dostupný', self.m.updates())
+            self.assertIn('available', self.m.updates())
             self.m.updates(True)
             self.assertEqual(self.m.inventory()[0]['version'], '2')
             self.m.restore()
@@ -160,7 +160,7 @@ class Integration(unittest.TestCase):
         source = {'provider': 'curseforge', 'mod_id': 42, 'file_id': 101, 'file_date': '2026-11-09T00:00:00Z'}
         self.m.install(archive('2'), 'curseforge:42', '2', source)
         with patch.object(Client, 'mod', return_value=mod()), patch.object(Client, 'latest_file', return_value=release()), patch.object(Client, 'download') as download:
-            self.assertIn('verzi nesnižuji', self.m.updates(True))
+            self.assertIn('skipping downgrade', self.m.updates(True))
             download.assert_not_called()
         self.assertEqual(self.m.inventory()[0]['version'], '2')
 

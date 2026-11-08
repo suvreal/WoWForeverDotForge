@@ -1,26 +1,27 @@
 FOREVER ADDONS
 
-Spuštění: nabídka aplikací nebo ikonka Forever Addons na ploše.
-Případně: python3 app.py z adresáře aplikace.
+Launch Forever Addons from the application menu or desktop shortcut.
+Alternatively, run python3 app.py from the application directory.
 
-CurseForge: záložka Procházet CurseForge -> Nastavit API klíč -> Hledat.
-Je potřeba vlastní CurseForge API klíč, nikoli přihlašovací heslo.
-Klíč zadávej přímo do aplikace; nikoli do chatu nebo repozitáře.
-Odkaz na žádost o API klíč je v dialogu nastavení.
+CurseForge: Browse CurseForge -> Set API key -> Search.
+You need your own CurseForge API key, not your account password.
+Enter the key directly in the application, never in chat or the repository.
+The key settings dialog links to instructions for requesting API access.
 
-Hledej název, autora nebo ID projektu. Prázdné hledání nabídne populární
-addony pro tvou verzi Forever. Výsledky lze řadit a procházet po stránkách.
-Tlačítko Nainstalovat ověří stabilní vydání, stažení a obsah ZIPu.
-Po instalaci funguje i Aktualizovat vše. Povinné závislosti se instalují
-zvlášť; jejich názvy a ID aplikace vypíše. Někteří autoři stahování přes
-jiné správce nepovolují; v tom případě použij stránku addonu a import ZIPu.
+Search by addon name, author, or project ID. An empty query lists popular
+addons for your Forever client version. Sort and paginate the results.
+Install verifies the stable release, download, and ZIP contents.
+Installed packages also support Update all. Required dependencies must be
+installed separately; their names and IDs are reported. Some authors disable
+third-party distribution; use the addon website and import a ZIP instead.
 
-GitHub: vlož vlastník/repozitář. ZIPy importuj tlačítkem Import ZIPu.
-Aktualizace ručních ZIPů probíhá opětovným importem nového ZIPu.
-Před změnami ukonči WoW a během instalace jej nespouštěj.
-Zálohy: ~/.local/share/forever-addons/backups.
-Kontrola souborů porovnává s manifestem při instalaci; není to antivir.
-Obnovit poslední zálohu nahrazuje současné soubory dotčených addonů
-stavem před poslední změnou. Nastavení postav ve WTF se nemění.
+GitHub: enter owner/repository. Use Import ZIP for local packages.
+Update manually imported ZIPs by importing a newer ZIP.
+Exit WoW before making changes and do not start it during installation.
+Backups: ~/.local/share/forever-addons/backups.
+File verification compares files with their installation manifest; it is not
+a malware scan. Restore latest backup replaces affected addon files with
+their state before the latest operation. WTF character settings are preserved.
 
-Úplný návod, omezení a příkazy jsou v README.md vedle tohoto souboru.
+See README.md in this directory for complete setup instructions, account
+switching, limitations, troubleshooting, and command-line usage.

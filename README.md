@@ -1,20 +1,22 @@
 # WoWForeverDotForge
 
-**Forever Addons** je lokální linuxový správce addonů pro World of Warcraft Forever ve Faugus. Nabízí nativní okno v GTK 4, katalog CurseForge, instalaci z GitHub Releases a ZIPů, aktualizace, kontrolu souborů a zálohy. Není přidružen k Blizzardu ani CurseForge.
+**Forever Addons** is a local Linux addon manager for World of Warcraft Forever installed through Faugus. It provides a native GTK 4 interface, a CurseForge catalog, installation from GitHub Releases and ZIP packages, updates, file integrity checks, and backups. It is not affiliated with Blizzard or CurseForge.
 
-## Co potřebuješ
+All project code, interface text, documentation, comments, and contribution messages are written in English.
 
-- Linux s Pythonem 3.10 nebo novějším. Pro okno aplikace také PyGObject, GTK 4 a přihlášenou grafickou relaci.
-- Nainstalovaný WoW Forever, který jsi alespoň jednou spustil a normálně ukončil. Musí existovat `_forever_/Wow.exe` a `_forever_/WTF/Config.wtf` s údajem `engineSurveyPatch`.
-- Právo zápisu do `Interface/AddOns` a volné místo pro stažení, rozbalení i zálohu předchozí verze. Správce spouštěj jako svůj běžný linuxový uživatel.
-- Připojení k internetu pro katalog a aktualizace. Lokální inventář, ověření souborů, import již staženého ZIPu a obnova fungují bez internetu.
-- Vlastní schválený CurseForge API klíč pro vestavěný katalog. GitHub instalace a ruční ZIPy jej nepotřebují.
+## Requirements
 
-Battle.net ani Faugus nemusí být při správě addonů otevřené. Samotnou hru před instalací, aktualizací, odstraněním nebo obnovou ukonči a během operace ji nespouštěj.
+- Linux with Python 3.10 or later. The graphical interface also requires PyGObject, GTK 4, and an active desktop session.
+- A WoW Forever installation that you have started and exited normally at least once. It must contain `_forever_/Wow.exe` and `_forever_/WTF/Config.wtf` with an `engineSurveyPatch` setting.
+- Write access to `Interface/AddOns` and enough free disk space for downloads, extraction, and backups. Run the manager as your normal Linux user.
+- An internet connection for catalog searches and updates. Local inventory, integrity checks, importing an existing ZIP, and restoring backups work offline.
+- Your own approved CurseForge API key for the built-in catalog. GitHub installation and manual ZIP imports do not require that key.
 
-## 1. Instalace aplikace
+Battle.net and Faugus do not need to be running while you manage addons. Exit the game before installing, updating, removing, or restoring packages, and do not start it while an operation is in progress.
 
-### Pop!_OS 22.04, Ubuntu a Debian
+## 1. Install the application
+
+### Pop!_OS 22.04, Ubuntu, and Debian
 
 ```bash
 sudo apt update
@@ -23,185 +25,186 @@ mkdir -p "$HOME/Applications"
 git clone https://github.com/suvreal/WoWForeverDotForge.git "$HOME/Applications/WoWForeverDotForge"
 cd "$HOME/Applications/WoWForeverDotForge"
 /usr/bin/python3 --version
-/usr/bin/python3 -c 'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk; print("GTK 4 dostupné")'
+/usr/bin/python3 -c 'import gi; gi.require_version("Gtk", "4.0"); from gi.repository import Gtk; print("GTK 4 is available")'
 /usr/bin/python3 install.py --desktop
 /usr/bin/python3 app.py
 ```
 
-Na jiných distribucích nainstaluj jejich balíčky poskytující Python 3.10+, modul `gi`, introspekční data GTK 4 a `xdg-user-dir`. Hlavní příkazy dál používej z adresáře s `app.py`. Aplikace nevyžaduje `pip install`, Wine ani Windows verzi CurseForge. Použij systémový Python: virtuální prostředí obvykle nevidí distribuční balíček `python3-gi`.
+On other distributions, install the packages that provide Python 3.10+, the `gi` module, GTK 4 introspection data, and `xdg-user-dir`. Run the remaining commands from the directory containing `app.py`. The application does not require `pip install`, Wine, or the Windows CurseForge client. Use the system Python: a virtual environment usually cannot see the distribution's `python3-gi` package.
 
-Pokud už tento projekt máš v `~/Applications/ForeverAddons`, pracuj v tomto existujícím adresáři. Nemusíš vytvářet druhou instalaci. Je-li cílový adresář neprázdný, `git clone` do něj nepoužívej.
+If your existing installation is in `~/Applications/ForeverAddons`, work in that directory instead. You do not need a second copy. Do not clone into an existing nonempty directory.
 
-Instalátor pouze zaregistruje aplikaci z aktuálního umístění. Vytvoří `~/.local/share/applications/forever-addons.desktop` a s `--desktop` také `Forever Addons.desktop` ve složce vrácené příkazem `xdg-user-dir DESKTOP`. Zdrojové soubory nikam nekopíruje. Po přesunu projektu spusť instalátor znovu. Pokud desktop vyžaduje důvěru, klikni pravým tlačítkem na ikonku a zvol **Povolit spuštění**. Bez funkční složky plochy lze použít samotné `python3 install.py` a nabídku aplikací.
+The installer registers the application at its current location. It creates `~/.local/share/applications/forever-addons.desktop`; `--desktop` also creates `Forever Addons.desktop` in the folder returned by `xdg-user-dir DESKTOP`. It does not copy the application source elsewhere. Run the installer again after moving the project. If your desktop requires confirmation, right-click the shortcut and select **Allow Launching**. If no desktop folder is configured, use `python3 install.py` without `--desktop` and launch from the application menu.
 
-## 2. Nastavení instalace hry
+## 2. Configure the game installation
 
-Výchozí cesta je:
+The default game directory is:
 
 ```text
 ~/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_
 ```
 
-V záhlaví aplikace zkontroluj výslednou cestu `Interface/AddOns` a Interface načtený z klienta. Správce cílí výhradně na složku nazvanou `_forever_`; `_classic_beta_`, Classic Era ani Retail nepodporuje. Neupravuj TOC ani nastavení klienta jen proto, abys obešel kontrolu kompatibility.
+Check the `Interface/AddOns` path and the client's Interface number in the application header. The manager only targets a folder named `_forever_`; it does not support `_classic_beta_`, Classic Era, or Retail. Do not edit TOC files or client settings to bypass compatibility checks.
 
-### Hra na jiném disku nebo v jiném prefixu
+### A different disk or Wine prefix
 
-Proměnná `FOREVER_GAME_DIR` musí obsahovat úplnou cestu ke složce `_forever_`, nikoli přímo k `Interface/AddOns`. Příklad pro jedno spuštění:
+Set `FOREVER_GAME_DIR` to the full path of the `_forever_` directory, rather than `Interface/AddOns`. For a single launch:
 
 ```bash
-FOREVER_GAME_DIR='/mnt/hry/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_' /usr/bin/python3 app.py
+FOREVER_GAME_DIR='/mnt/games/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_' /usr/bin/python3 app.py
 ```
 
-Stejnou proměnnou používej také při příkazech `list`, `verify`, `check` a ostatních operacích pro tuto instalaci. Program si cestu do hry neukládá do nastavení.
+Use the same variable with `list`, `verify`, `check`, and other commands for that installation. The application does not save the game path in its settings.
 
-Pro trvalé spuštění ikonou změň řádek `Exec=` v příslušném `.desktop` souboru. Například:
+To preserve the path when launching from an icon, edit the `Exec=` line in the corresponding `.desktop` file. For example:
 
 ```ini
-Exec=/usr/bin/env "FOREVER_GAME_DIR=/mnt/hry/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_" /usr/bin/python3 "/home/TVUJ_UZIVATEL/Applications/WoWForeverDotForge/app.py"
+Exec=/usr/bin/env "FOREVER_GAME_DIR=/mnt/games/Faugus/battlenet/drive_c/Program Files (x86)/World of Warcraft/_forever_" /usr/bin/python3 "/home/YOUR_USER/Applications/WoWForeverDotForge/app.py"
 ```
 
-Nahraď cesty skutečnými absolutními cestami. `.desktop` soubor nerozbaluje `~` ani `$HOME`. Řádek uprav v položce nabídky i v kopii na ploše, pokud používáš obě. Samotné `FOREVER_GAME_DIR=… python3 install.py` cestu do spouštěče neuloží; další spuštění instalátoru vlastní řádek `Exec=` přepíše.
+Replace both paths with your actual absolute paths. Desktop entries do not expand `~` or `$HOME`. Update both the application-menu entry and the desktop copy if you use both. Running `FOREVER_GAME_DIR=… python3 install.py` alone does not save that setting in the launcher. Running the installer again overwrites a customized `Exec=` line.
 
-**Více instalací hry:** současná verze má jeden registr balíčků a záloh na linuxového uživatele. Přepínání `FOREVER_GAME_DIR` nevytváří oddělený profil. Pro běžnou správu používej jednu instalaci na uživatele; různá samostatná prostředí odděl linuxovými účty. Aplikace zatím nemá přepínač herních profilů.
+**Multiple game installations:** the current application uses one package registry and backup directory per Linux user. Changing `FOREVER_GAME_DIR` does not create an independent profile. Use one managed installation per Linux user; use separate Linux accounts for independent environments. There is no built-in game-profile switcher yet.
 
-## 3. CurseForge účty a API přístup
+## 3. CurseForge accounts and API access
 
-### Který účet nebo klíč je potřeba
+### Which account or key do you need?
 
-| Přístup | Jak ho aplikace používá |
+| Access type | How this application uses it |
 | --- | --- |
-| Běžný účet na webu CurseForge | Přihlášení probíhá ve tvém prohlížeči. Aplikace z něj nepřebírá relaci ani oprávnění API. |
-| Schválený přístup třetí strany k CurseForge API | Jeho klíč umožní vestavěné hledání, přímou instalaci a aktualizace. |
-| Účet vydavatele hry v CurseForge for Studios | Je určen vydavatelům vlastních her. Kvůli správě WoW addonů nezakládej novou hru. |
-| Účet Battle.net | Slouží hře; do tohoto správce se nezadává. |
-| Účet GitHub | Pro běžné stahování veřejných GitHub Releases není potřeba. Pro push do tohoto projektu je potřeba zvlášť. |
+| Regular CurseForge website account | Sign in through your browser. The application does not inherit that session or its API permissions. |
+| Approved third-party CurseForge API access | Its API key enables built-in searches, direct installation, and updates. |
+| Game publisher account in CurseForge for Studios | Intended for publishers of their own games. Do not create a new game to manage WoW addons. |
+| Battle.net account | Used by the game; never entered into this manager. |
+| GitHub account | Not required to download public GitHub Releases. Required separately to push changes to this project. |
 
-Klient podporuje **jeden aktivní API klíč na proces**. Nemá OAuth přihlášení, seznam CurseForge účtů, cloudovou synchronizaci, import oblíbených položek ani oddělené sestavy addonů podle webového účtu. Změna přihlášení ve webovém prohlížeči aktivní klíč aplikace nezmění.
+The client supports **one active API key per process**. It does not provide OAuth sign-in, a list of CurseForge accounts, cloud synchronization, importing favorites, or separate addon sets for website accounts. Signing into another account in your browser does not change the application's active API key.
 
-### Získání vlastního API klíče
+### Request your own API key
 
-1. Otevři [oficiální návod pro získání CurseForge API klíče](https://support.curseforge.com/support/solutions/articles/9000208346-about-the-curseforge-api-and-how-to-apply-for-a-key).
-2. Použij tam odkaz na žádost pro vývojáře aplikací třetích stran. Popiš skutečný projekt, jeho GitHub adresu a zamýšlené hledání a stahování WoW addonů.
-3. Dokonči požadované podmínky a schvalovací postup. API přístup není automatickým důsledkem vytvoření běžného webového účtu; dostupnost a schválení určuje CurseForge.
-4. Po schválení použij klíč přidělený tvému přístupu. Řiď se podmínkami tohoto klíče, včetně jeho případného omezení na konkrétní aplikaci.
+1. Open the [official CurseForge API key application guide](https://support.curseforge.com/support/solutions/articles/9000208346-about-the-curseforge-api-and-how-to-apply-for-a-key).
+2. Follow its application link for third-party developers. Describe your actual project, its GitHub URL, and your intended use for searching and downloading WoW addons.
+3. Complete the required terms and approval process. A regular website account does not automatically grant API access; availability and approval are controlled by CurseForge.
+4. Once approved, use the key assigned to your access. Follow its terms, including any restriction to a particular application.
 
-[Dokumentace API](https://docs.curseforge.com/rest-api/) rozlišuje poskytovatele her a aplikace třetích stran. Nestahuj cizí klíče ze zdrojových kódů jiných správců. Klíčem není heslo k účtu, webová cookie ani token Battle.net.
+The [API documentation](https://docs.curseforge.com/rest-api/) distinguishes game publishers from third-party applications. Do not obtain another manager's key from its source code. Your account password, browser cookie, and Battle.net token are not API keys.
 
-### Zadání klíče do aplikace
+### Configure the key in the application
 
-1. Otevři **Procházet CurseForge → Nastavit API klíč**.
-2. Vlož klíč do skrytého pole a klikni **Uložit**.
-3. Nech vyhledávání prázdné a klikni **Hledat**, případně zadej název addonu.
-4. Úspěchem je skutečně načtený seznam nebo platná prázdná odpověď katalogu. Hláška „klíč je nastavený“ pouze potvrzuje přítomnost klíče, ne jeho platnost.
+1. Open **Browse CurseForge → Set API key**.
+2. Paste your key into the hidden field and click **Save**.
+3. Leave the search empty and click **Search**, or enter an addon name.
+4. A successful connection returns actual catalog results or a valid empty response. The message that a key is configured only confirms that a key is present; it does not verify its validity.
 
-Klíč se ukládá nešifrovaně do `~/.config/forever-addons/curseforge.key` s oprávněním `0600`. Soubor je mimo repozitář, registr addonů i zálohy. Nezobrazuj jej příkazem `cat`, nevkládej ho do chatu, ticketů, `.desktop` souborů ani Git commitu. Případnou revokaci proveď u poskytovatele API a pak zadej nový klíč.
+The key is stored unencrypted in `~/.config/forever-addons/curseforge.key` with permissions `0600`. The file is outside the repository, package registry, and backups. Do not display it using `cat`, or paste it into chat, tickets, desktop entries, or Git commits. Revoke a compromised key through its API provider, then configure a replacement.
 
-Alternativa přes terminál se skrytým vstupem:
+Alternatively, configure it from a terminal using a hidden input prompt:
 
 ```bash
 /usr/bin/python3 app.py curse-key
 /usr/bin/python3 app.py curse-search ""
 ```
 
-### Přepnutí na jiný vlastní CurseForge přístup
+### Switch to another API account or access grant
 
-**Běžné nahrazení uloženého klíče:** zavři aplikaci. Pokud používáš terminál, spusť `unset CURSEFORGE_API_KEY`, otevři z něj aplikaci a v dialogu nastavení ulož klíč druhého přístupu. Klíč se přepíše, ale nainstalované addony a zálohy zůstanou stejné. Přepsání souboru nerevokuje původní klíč u CurseForge.
+**Replace the saved key:** close the application. If launching from a terminal, run `unset CURSEFORGE_API_KEY`, open the application from that terminal, and save the other access grant's key in the settings dialog. This replaces the saved key, but preserves installed addons and backups. Replacing the local file does not revoke the previous key at CurseForge.
 
-**Zapomenutí klíče:** v dialogu zaškrtni **Zapomenout uložený klíč** a ulož. V CLI příkazu `curse-key` lze nechat vstup prázdný. Prázdné pole v grafickém dialogu naopak existující klíč ponechá.
+**Forget the saved key:** select **Forget the saved key** in the dialog and save. In the CLI, submit an empty value to `curse-key`. An empty field in the graphical dialog instead preserves the existing key.
 
-**Proměnná prostředí má přednost:** neprázdná `CURSEFORGE_API_KEY` přebije uložený soubor. Smazání souboru nebo změna v dialogu tuto proměnnou procesu nezmění. Pro návrat k souboru aplikaci zavři, zruš proměnnou v prostředí, ze kterého ji spouštíš, a otevři ji znovu. Druhé spuštění při již běžícím okně může pouze aktivovat původní okno s původním prostředím.
+**Environment variable precedence:** a nonempty `CURSEFORGE_API_KEY` overrides the saved file. Deleting the file or changing the key in the dialog does not change an existing process's environment variable. To return to the saved-file configuration, close the application, unset the variable in the environment you launch it from, and start a new process. Starting a second instance while a window is open may simply activate the original window with its original environment.
 
-### Dva nebo více klíčů pod stejným linuxovým účtem
+### Keep multiple keys under one Linux account
 
-Vestavěné pojmenované profily zatím nejsou k dispozici. Máš-li oprávněně více vlastních API klíčů, můžeš si je držet v oddělených souborech mimo projekt a vybraný předat procesu. Následující příkazy jsou pro **Bash** a nevkládají hodnotu klíče do historie příkazů:
+Named profiles are not built in yet. If you are authorized to use multiple API keys, you can keep them in separate files outside the project and pass the selected one to the process. These commands use **Bash** and do not place the key value in command history:
 
 ```bash
 (
     umask 077
     mkdir -p "$HOME/.config/forever-addons/accounts"
-    read -r -s -p 'API klíč přístupu A: ' cf_profile_key
+    read -r -s -p 'API key for account A: ' cf_profile_key
     printf '\n'
-    printf '%s' "$cf_profile_key" > "$HOME/.config/forever-addons/accounts/pristup-a.key"
+    printf '%s' "$cf_profile_key" > "$HOME/.config/forever-addons/accounts/account-a.key"
+    chmod 600 "$HOME/.config/forever-addons/accounts/account-a.key"
     unset cf_profile_key
 )
 ```
 
-Pro druhý přístup zopakuj uložení s názvem `pristup-b.key`. Před spuštěním s jiným klíčem ukonči všechna okna aplikace. Z adresáře projektu pak spusť:
+Repeat the storage step using `account-b.key` for another access grant. Close every application window before switching keys. From the project directory, launch with:
 
 ```bash
-CURSEFORGE_API_KEY="$(< "$HOME/.config/forever-addons/accounts/pristup-a.key")" /usr/bin/python3 app.py
+CURSEFORGE_API_KEY="$(< "$HOME/.config/forever-addons/accounts/account-a.key")" /usr/bin/python3 app.py
 ```
 
-Pro přístup B použij druhý soubor. Klíč se předává prostředím, nikoli argumentem příkazu, a aplikace jej neukládá do společného souboru. Nesdílej prostředí ani diagnostický výpis procesu s cizími lidmi. Tyto soubory spravuješ ručně; volba **Zapomenout uložený klíč** je nemaže.
+Use the other file for account B. The key is passed through the environment rather than a command-line argument, and is not copied into the shared saved-key file. Do not share your process environment or diagnostic dumps. You manage these files yourself: **Forget the saved key** does not delete them.
 
-Tímto se přepíná pouze API přístup. Stejný linuxový uživatel stále používá **stejné addony, manifesty, zálohy a nastavení automatických kontrol**. Pro dva lidi se samostatnými daty použij dva linuxové účty a každému nastav jeho vlastní instalaci a klíč podle pravidel CurseForge. Přístup ke složce hry musí mít každý z nich samostatně vyřešený.
+This only switches API access. The same Linux user still uses **the same installed addons, manifests, backups, and startup settings**. For two people with independent data, use separate Linux accounts and configure each person's own installation and authorized API key. Each user also needs appropriate access to their game directory.
 
-### Používání bez API klíče
+### Use the manager without an API key
 
-Přes tlačítko stránky addonu můžeš otevřít web, stáhnout kompatibilní ZIP a použít **Import ZIPu**. Bez připojeného katalogu otevři přímo [webové hledání CurseForge](https://www.curseforge.com/wow/search?class=addons). Dostupné zůstávají také GitHub Releases a místní kontrola souborů. Ručně importované ZIPy se nepropojí automaticky s CurseForge projektem a aktualizují se dalším importem.
+An addon's website button opens its browser page, where you can download a compatible ZIP and use **Import ZIP**. Without a connected catalog, open the [CurseForge website search](https://www.curseforge.com/wow/search?class=addons) directly. GitHub Releases and local file checks also remain available. Manually imported ZIPs are not automatically associated with a CurseForge project and must be updated by importing another ZIP.
 
-## 4. Instalace a běžné používání
+## 4. Install and manage addons
 
-### Z katalogu CurseForge
+### From the CurseForge catalog
 
-1. V **Procházet CurseForge** vyhledej název, autora nebo číselné ID projektu. Prázdný dotaz nabídne populární výsledky. Vyber řazení a použij **Předchozí / Další** pro další stránky.
-2. Klikni **Nainstalovat**. Výběr souboru přijímá dostupná stabilní vydání pro přesnou verzi klienta a poté ověří velikost, kontrolní součet z API i TOC Interface uvnitř ZIPu. Beta, alpha a early-access soubory se automaticky neinstalují. Samotný výsledek hledání tedy ještě nezaručuje instalovatelné stabilní vydání.
-3. Pokud aplikace vypíše povinnou závislost názvem a ID, nainstaluj nejdřív ji a původní instalaci opakuj. Závislosti se nestahují automaticky. Ručně nebo přes GitHub instalovanou knihovnu správce nemusí rozpoznat jako splněnou závislost konkrétního CurseForge projektu.
-4. Pokud autor zakázal distribuci jinými správci nebo API neposkytne stažení, použij stránku addonu a ruční ZIP. Správce zákaz neobchází.
-5. Po úspěšné instalaci otevři **Nainstalované addony → Ověřit soubory**. Teprve po dokončení operací spusť WoW a ověř načtení addonu přímo ve hře.
+1. In **Browse CurseForge**, search by addon name, author, or numeric project ID. An empty query browses popular results. Select a sort order and use **Previous / Next** to browse pages.
+2. Click **Install**. File selection accepts available stable releases for the exact client version, then validates download size, the API-provided checksum, and the TOC Interface inside the ZIP. Beta, alpha, and early-access files are not installed automatically. A search result therefore does not guarantee an installable stable release.
+3. If the application lists a required dependency by name and ID, install that dependency first, then retry the original addon. Dependencies are not downloaded automatically. A manually installed or GitHub-installed library may not be recognized as satisfying a specific CurseForge project's API dependency.
+4. If the author disables third-party distribution or the API does not provide a download, use the addon website and import a ZIP manually. The manager does not bypass those restrictions.
+5. After installation, open **Installed addons → Verify files**. Start WoW only after all operations finish, then verify that the addon loads in the game.
 
-Filtr verze a TOC jsou deklarace autora; nezaručují, že addon bez chyby funguje s aktuálním herním API.
+The version filter and TOC are author declarations; they do not guarantee that the addon works correctly with the current game API.
 
-### Z GitHub Releases
+### From GitHub Releases
 
-Do pole GitHub zadej `VLASTNIK/REPOZITAR` nebo hlavní URL repozitáře. Správce prohlíží posledních 15 vydání a hledá kompatibilní distribuční ZIP ve stabilním vydání. Ignoruje prerelease a `nolib` balíčky. Automatický **Source code (zip)** obvykle nemá správnou distribuční strukturu; není náhradou za publikovaný addon balíček.
+Enter `OWNER/REPOSITORY` or the repository's main URL in the GitHub field. The manager examines the latest 15 releases for a compatible distribution ZIP in a stable release. It ignores prereleases and `nolib` packages. The automatically generated **Source code (zip)** usually lacks the correct distribution structure and is not a substitute for a packaged addon release.
 
-### Z vlastního ZIPu
+### From a local ZIP
 
-Klikni **Import ZIPu** a vyber archiv. Očekávaná struktura:
+Click **Import ZIP** and select the archive. Expected structure:
 
 ```text
 Addon.zip
-└── NazevAddonu/
-    ├── NazevAddonu.toc
-    └── ...soubory addonu...
+└── AddonName/
+    ├── AddonName.toc
+    └── ...addon files...
 ```
 
-Archiv může obsahovat více addonů, každý ale musí mít přijatelné TOC pro aktuální Interface. Archiv nesmí obsahovat nebezpečné cesty, symlinky ani spustitelné soubory. Limit staženého/importovaného ZIPu je 100 MB; rozbalený archiv má limit 400 MB a 25 000 položek.
+An archive may contain multiple addons, but each must provide a valid TOC for the current Interface. Unsafe paths, symlinks, and executable files are rejected. Downloaded or imported ZIPs are limited to 100 MB; extracted archives are limited to 400 MB and 25,000 entries.
 
-Existující nespravované složky aplikace zobrazí, ale nepřevezme je ani nepřepíše automaticky. Neodstraňuj je jen kvůli obejití hlášení o kolizi; případnou migraci proveď s vlastní zálohou a ověřením zdroje.
+Existing unmanaged folders are displayed but are not automatically adopted or overwritten. Do not delete them just to bypass a collision warning. Plan any migration with your own backup and source verification.
 
-### Aktualizace a kontrola při otevření
+### Updates and startup checks
 
-- **Zkontrolovat aktualizace** vyhledá kompatibilní vydání.
-- **Aktualizovat vše** provede aktualizace spravovaných GitHub a CurseForge balíčků, pokud nebrání kompatibilita, chybějící závislost, síťová chyba nebo lokální změny.
-- Ruční ZIP se aktualizuje opětovným importem nového distribučního ZIPu se stejnými složkami.
-- Volba **Při spuštění aplikace** nabízí kontrolu, automatickou aktualizaci nebo vypnutí. Týká se otevření správce; nevytváří službu ani automatické spouštění při přihlášení do Linuxu.
+- **Check for updates** looks for compatible releases.
+- **Update all** updates managed GitHub and CurseForge packages unless compatibility checks, missing dependencies, network errors, or local changes prevent it.
+- Update a manually imported ZIP by importing a newer distribution package with the same addon folders.
+- **When the application starts** offers checks, automatic updates, or no action. This applies when opening the manager; it does not create a background service or start the application at Linux login.
 
-Po hromadné operaci si přečti celý výpis. Jednotlivé balíčky se zpracovávají samostatně: chyba jednoho nevylučuje úspěch jiného. CLI `check` a `update` mohou vrátit kód 0 i při chybě některého balíčku uvedené ve výpisu; pro automatizaci nespoléhej jen na návratový kód.
+Read the full output after a batch operation. Packages are processed independently: one failure does not mean every package failed. CLI `check` and `update` can return exit code 0 while reporting individual package failures in their output. Automation must not rely on the exit code alone.
 
-## 5. Integrita, zálohy a obnova
+## 5. Integrity, backups, and recovery
 
-**Ověřit soubory** porovnává SHA-256 souborů s manifestem vytvořeným při instalaci. Hlásí změněné, přidané a chybějící soubory. Není to antivir ani nezávislé potvrzení důvěryhodnosti autora. U nespravovaných addonů chybí výchozí manifest a stav **Nespravovaný** neznamená ověřenou integritu.
+**Verify files** compares each file's SHA-256 digest with the manifest created during installation. It detects modified, added, and missing files. It is not a malware scanner or independent verification of an author's trustworthiness. Unmanaged addons have no reference manifest, and **Unmanaged** does not mean their integrity has been verified.
 
-Před instalací, aktualizací nebo odstraněním vzniká záloha dotčených addonů. Při selhání zápisu se správce pokusí vrátit předchozí stav. Po přerušení procesu může zbýt `pending.json`; další změny jsou potom blokované do obnovy.
+Before installation, update, or removal, the manager backs up affected addons. If a write fails, it attempts to restore the previous state. An interrupted process may leave `pending.json`; further changes are blocked until recovery.
 
-**Obnovit poslední zálohu** vrací stav před poslední operací. Nahrazuje aktuální obsah dotčených složek, včetně tvých pozdějších úprav. Při aktualizaci více balíčků postupně vrátí poslední jednotlivou operaci; nejde o jediné tlačítko pro vrácení celé dávky. Opakování obnovy neprochází automaticky starší zálohy. Lokální změny blokují aktualizaci i odstranění: nejdřív si je uchovej a rozhodni, zda je chceš zachovat, nebo obnovit předchozí stav. Současná verze nemá tlačítko pro opravu souborů ze stejného nainstalovaného archivu.
+**Restore latest backup** restores the state before the latest package operation. It replaces the current contents of affected folders, including any later local edits. After updating multiple packages, it restores the last individual operation rather than the whole batch. Repeated restores do not automatically step through older backups. Local changes block updates and removal: preserve your edits before deciding whether to keep them or restore a previous state. There is currently no repair button that reinstalls the exact currently installed archive.
 
-| Umístění | Obsah |
+| Location | Contents |
 | --- | --- |
-| `~/.config/forever-addons/curseforge.key` | Uložený API klíč; práva 0600, bez šifrování. |
-| `~/.local/share/forever-addons/state.json` | Registry zdrojů, verze, manifesty a režim při otevření. |
-| `~/.local/share/forever-addons/backups/` | Zálohy před změnami; automaticky se nemažou. |
-| `~/.local/share/forever-addons/pending.json` | Záznam nedokončené operace, pokud existuje. |
-| `_forever_/Interface/AddOns/` | Samotné addony. |
-| `_forever_/WTF/` | Nastavení klienta, postav a addonů; správce je nepřepisuje ani nezálohuje. |
+| `~/.config/forever-addons/curseforge.key` | Saved API key; permissions 0600, unencrypted. |
+| `~/.local/share/forever-addons/state.json` | Package sources, versions, manifests, and startup mode. |
+| `~/.local/share/forever-addons/backups/` | Backups taken before changes; never pruned automatically. |
+| `~/.local/share/forever-addons/pending.json` | Unfinished operation record, when present. |
+| `_forever_/Interface/AddOns/` | Installed addon files. |
+| `_forever_/WTF/` | Client, character, and addon settings; neither overwritten nor backed up by the manager. |
 
-Při migraci uchovej spolu addony a celý datový adresář správce. Nesmaž `state.json` kvůli chybě integrity: ztratil bys evidenci a původní manifesty. Nastavení ve WTF zálohuj zvlášť podle své potřeby.
+When migrating, preserve both your addons and the manager's entire data directory. Do not delete `state.json` to resolve an integrity error: doing so loses package tracking and reference manifests. Back up WTF settings separately as needed.
 
-## 6. Ověření funkčního běhu a řešení potíží
+## 6. Verify a working installation and troubleshoot
 
-Z kořene projektu:
+From the project root:
 
 ```bash
 /usr/bin/python3 app.py list
@@ -210,27 +213,27 @@ Z kořene projektu:
 /usr/bin/python3 app.py check
 ```
 
-`list` vypíše skutečné lokální složky; `[]` je u prázdné instalace v pořádku. `verify` vrací 1 při změně či chybě spravovaných souborů, 0 jinak; kód 0 u nespravovaných složek neznamená, že byly ověřeny. Výsledek `curse-search` musí pocházet z API bez chyby připojení. Po prvním vybraném addonu ověř soubory a pak jeho načtení ve hře. Úspěšné automatické testy samy o sobě nedokazují platný klíč, funkční síť nebo zobrazení okna.
+`list` reports actual local folders; `[]` is normal for an empty installation. `verify` returns 1 for modified or missing managed files and 0 otherwise; exit code 0 does not verify unmanaged folders. `curse-search` must return a real API response without a connection error. After installing your first chosen addon, verify its files and then confirm it loads in the game. Automated tests alone do not establish that your API key, network connection, or graphical session works.
 
-| Potíž | Co ověřit |
+| Problem | What to check |
 | --- | --- |
-| `No module named gi` / GTK není dostupné | Doinstaluj balíčky z kroku 1 a použij `/usr/bin/python3` mimo virtuální prostředí. |
-| Grafická relace není dostupná | Otevři aplikaci z terminálu přihlášeného desktopu, bez `sudo`. Přes běžné SSH bez grafické relace používej CLI. |
-| Není to instalace `_forever_` | Cesta musí končit `_forever_` a uvnitř mít `Wow.exe`. Zkontroluj `FOREVER_GAME_DIR` i řádek `Exec=` ikonky. |
-| Nelze zjistit Interface | Spusť správnou verzi hry a ukonči ji. Ověř existenci jejího `WTF/Config.wtf`; nevymýšlej číslo ručně. |
-| API klíč je nastavený, ale katalog hlásí 401/403 | Ověř schválení a platnost vlastního API přístupu a případnou přednost `CURSEFORGE_API_KEY`. Samotné přihlášení na web nestačí. |
-| Změna/smazání klíče nepomohla | Ukonči původní okno, zruš proměnnou prostředí a spusť nový proces. |
-| Prázdný katalog nebo chybí stabilní ZIP | Zkus jiný dotaz/ID a ověř, že autor vydává stabilní balíček pro přesnou verzi klienta. Verzi aplikace neobcházej přepsáním TOC. |
-| Chybí závislost | Vyhledej a nainstaluj uvedené ID; potom původní addon opakuj. |
-| Zakázaná distribuce / chybí URL | Otevři web projektu a použij povolené ruční stažení a import. |
-| HTTP 429 | Počkej a opakuj později; nejde o důvod měnit účet. |
-| Nedostupná síť / `Could not resolve host` | Ověř `getent hosts api.curseforge.com github.com` v normálním terminálu. Omezená síť prostředí agenta je odlišná od sítě desktopu. |
-| WoW stále běží / jiná operace běží | Ukonči hru a počkej na dokončení jiné instance správce. |
-| Lokální změny / nedokončená operace | Uchovej vlastní úpravy; podle situace použij obnovu. Neodstraňuj ochranné záznamy jen pro odblokování zápisu. |
-| Nedostatečná oprávnění | Zkontroluj vlastnictví konkrétní herní složky. Nespouštěj celý správce přes `sudo`. |
-| Dvojklik na ikonku nic neukáže | Spusť `/usr/bin/python3 app.py` v terminálu, přečti chybu a zkontroluj absolutní `Exec=`. Po přesunu projektu znovu spusť instalátor. |
+| `No module named gi` / GTK unavailable | Install the packages from section 1 and use `/usr/bin/python3` outside a virtual environment. |
+| No graphical session | Launch from your logged-in desktop terminal without `sudo`. Use CLI commands over SSH without a graphical session. |
+| Not a `_forever_` installation | The directory must end in `_forever_` and contain `Wow.exe`. Check `FOREVER_GAME_DIR` and the shortcut's `Exec=` line. |
+| Unable to detect Interface | Start the correct game version and exit it. Check its `WTF/Config.wtf`; do not invent an Interface value. |
+| A key is configured but the catalog reports 401/403 | Check that your API access is approved and valid, and whether `CURSEFORGE_API_KEY` overrides the saved key. Website sign-in is insufficient. |
+| Replacing/deleting the key did not help | Close the existing window, unset the environment variable, and launch a new process. |
+| Empty catalog or no stable ZIP | Try another query or ID, and check whether the author publishes a stable package for your exact client version. Do not bypass checks by editing TOC files. |
+| Missing dependency | Search for and install the reported project ID, then retry the original addon. |
+| Distribution disabled / missing download URL | Use the project's website and its permitted manual download, then import the ZIP. |
+| HTTP 429 | Wait and retry later; changing accounts is not a remedy. |
+| Network unavailable / `Could not resolve host` | Run `getent hosts api.curseforge.com github.com` in a normal terminal. Agent network restrictions are separate from your desktop's connection. |
+| WoW or another operation is running | Exit the game and wait for the other manager operation to finish. |
+| Local changes / unfinished operation | Preserve your changes and restore a backup where appropriate. Do not delete recovery records just to unblock writes. |
+| Permission denied | Check ownership of the specific game folder. Do not run the entire manager with `sudo`. |
+| Double-clicking the icon shows nothing | Run `/usr/bin/python3 app.py` in a terminal to see the error and check the absolute `Exec=` path. Rerun the installer after moving the project. |
 
-## 7. Příkazová obsluha
+## 7. Command-line reference
 
 ```bash
 /usr/bin/python3 app.py --help
@@ -239,21 +242,21 @@ Z kořene projektu:
 /usr/bin/python3 app.py curse-key
 /usr/bin/python3 app.py curse-search "unit frames"
 /usr/bin/python3 app.py curse-search "" --index 20
-/usr/bin/python3 app.py install-curseforge ID_PROJEKTU
-/usr/bin/python3 app.py install-github VLASTNIK/REPOZITAR
-/usr/bin/python3 app.py install-zip /cesta/addon.zip
+/usr/bin/python3 app.py install-curseforge PROJECT_ID
+/usr/bin/python3 app.py install-github OWNER/REPOSITORY
+/usr/bin/python3 app.py install-zip /path/to/addon.zip
 /usr/bin/python3 app.py check
 /usr/bin/python3 app.py update
-/usr/bin/python3 app.py remove curseforge:ID_PROJEKTU
+/usr/bin/python3 app.py remove curseforge:PROJECT_ID
 /usr/bin/python3 app.py restore
 /usr/bin/python3 app.py startup check
 ```
 
-Řetězce `ID_PROJEKTU`, `VLASTNIK/REPOZITAR` a cesty jsou zástupné hodnoty. Klíč pro `remove` zjistíš z položky `source` v `list`; může začínat také `github:` nebo `zip:`. Režimy `startup` jsou `check`, `update`, `off`. Ne všechny chyby hromadných operací znamenají nenulový návratový kód; čti jejich výpis.
+`PROJECT_ID`, `OWNER/REPOSITORY`, and paths are placeholders. Find the package key for `remove` in the `source` field of `list`; it may also start with `github:` or `zip:`. Startup modes are `check`, `update`, and `off`. Individual batch-operation errors do not necessarily produce a nonzero exit code; read the output.
 
-## 8. Aktualizace a odebrání správce
+## 8. Update or uninstall the manager
 
-Před aktualizací aplikaci zavři a z adresáře projektu spusť:
+Close the application before updating it, then run from the project directory:
 
 ```bash
 git status --short
@@ -262,17 +265,17 @@ git pull --ff-only
 /usr/bin/python3 app.py
 ```
 
-Pokud máš vlastní změny kódu nebo konflikt historie, nepřepisuj je násilím; nejdřív je vyřeš. `git pull` vyžaduje publikovanou historii repozitáře. Kvůli běžné aktualizaci ve stejném adresáři není nutné znovu instalovat ikonky.
+Resolve local code changes or diverging history before updating; do not overwrite them forcibly. `git pull` requires a published upstream history. Updating in the same directory does not require reinstalling shortcuts.
 
-Pro odebrání aplikaci ukonči a odstraň její položku nabídky, ikonku na ploše a případně adresář zdrojového projektu. Nainstalované addony, data správce a API klíče tím automaticky nezmizí. Zachovej zálohy, dokud je můžeš potřebovat. Odstranění lokálního souboru klíče nerevokuje API klíč u CurseForge.
+To uninstall, close the application and remove its application-menu entry, desktop shortcut, and optionally the source directory. This does not automatically remove installed addons, manager data, or API keys. Keep backups until you no longer need them. Deleting a local key file does not revoke that key with CurseForge.
 
-## 9. Vývoj, GitHub přístup a push
+## 9. Development, GitHub access, and publishing
 
-Použij účet s oprávněním zapisovat do `suvreal/WoWForeverDotForge`. GitHub přístup je nezávislý na CurseForge klíči i účtu Battle.net.
+Use a GitHub account with write access to `suvreal/WoWForeverDotForge`. GitHub access is independent of CurseForge API keys and Battle.net accounts.
 
-### Přihlášení z vlastního linuxového terminálu
+### Sign in from your own Linux terminal
 
-Pokud chybí GitHub CLI, na systémech s dostupným balíčkem jej nainstaluj přes `sudo apt install gh`. Zkontroluj síť a přihlas se interaktivně v prohlížeči:
+If GitHub CLI is missing, install it with `sudo apt install gh` on systems providing that package. Check connectivity, then sign in interactively through your browser:
 
 ```bash
 getent hosts github.com
@@ -281,13 +284,13 @@ gh auth setup-git
 gh auth status
 ```
 
-Přihlášení dokonči ve vlastním prohlížeči pod účtem s přístupem do projektu. Rozšíření `workflow` je potřebné pro push zdejšího `.github/workflows/tests.yml` při použití OAuth přístupu. Heslo ani token nevkládej do chatu. Pokud máš v `gh` více přihlášení, vyber správné přes `gh auth switch --hostname github.com --user suvreal`; samotné přepnutí ale neobnoví neplatný token. Postup vychází z [návodu GitHub CLI](https://cli.github.com/manual/gh_auth_login).
+Complete sign-in in your browser using an account with project access. The additional `workflow` scope is needed to push this project's `.github/workflows/tests.yml` with OAuth credentials. Never paste a password or token into chat. If several accounts are configured, select the correct one with `gh auth switch --hostname github.com --user suvreal`; switching does not renew an invalid token. See the [GitHub CLI login guide](https://cli.github.com/manual/gh_auth_login).
 
-Používáš-li místo tohoto postupu vlastní fine-grained token, omez jej na tento repozitář a nastav potřebná oprávnění **Contents: Read and write**, pro zdejší workflow také **Workflows: Read and write** a pro vytváření PR **Pull requests: Read and write**. Respektuj jeho expiraci a případné schválení organizací. Pro přihlášení jej použij bezpečnou cestou popsanou v [dokumentaci GitHubu](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens); nedávej jej do URL `origin` ani do souborů projektu.
+If you use your own fine-grained token instead, restrict it to this repository and grant **Contents: Read and write**, **Workflows: Read and write** for the workflow file, and **Pull requests: Read and write** to create PRs. Respect expiration and any organization approval requirements. Follow the [GitHub token documentation](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) for secure authentication; do not place tokens in the `origin` URL or project files.
 
-### První push do prázdného repozitáře
+### First push to an empty repository
 
-Pro již připravenou lokální Git historii, po kontrole obsahu commitu:
+For an existing local Git history, after reviewing the committed files:
 
 ```bash
 git status --short
@@ -297,34 +300,34 @@ git ls-remote origin
 git push -u origin main
 ```
 
-Očekávaný remote je `https://github.com/suvreal/WoWForeverDotForge.git`. Prázdný výstup `git ls-remote origin` s návratovým kódem 0 znamená repozitář bez refů; chyba připojení nebo autentizace není potvrzením prázdného repozitáře. Jestli mezitím na serveru vznikly commity, nejdřív je načti a historii zkontroluj. Nepoužívej `--force` jako opravu chyby přihlášení nebo rozdílné historie.
+The expected remote is `https://github.com/suvreal/WoWForeverDotForge.git`. Empty output from `git ls-remote origin` with exit code 0 means no refs were returned; a network or authentication error does not establish that the repository is empty. If remote commits have appeared, fetch and review the history first. Do not use `--force` to fix authentication problems or diverging history.
 
-### Další změny přes pull request
+### Subsequent changes through a pull request
 
 ```bash
 git switch -c docs/setup-and-accounts
-# Uprav soubory a zkontroluj diff; přidej jen zamýšlené soubory.
+# Edit files and review the diff; stage only the intended files.
 git add README.md
 git commit -m 'BEL: Document installation and account setup'
 git push -u origin HEAD
 gh pr create --base main --title 'BEL: Document installation and account setup' --body 'BEL: Add installation, configuration, account switching and verification instructions.'
 ```
 
-PR titulky a zprávy mají formát **`BEL: {MESSAGE}`**. Pro první publikaci aplikace v dosud prázdném repozitáři musí nejdřív vzniknout výchozí větev; proti neexistující `main` nelze otevřít PR.
+PR titles and messages use **`BEL: {MESSAGE}`**. The initial publication to an empty repository must establish the default branch first; a PR cannot target a nonexistent `main` branch.
 
-### Když push blokuje konektor nebo prostředí agenta
+### Connector or agent environment prevents publishing
 
-Chyba GitHub API **403 `Resource not accessible by integration`** znamená nedostatečná oprávnění integračního tokenu pro konkrétní operaci. To je jiná věc než oprávnění vlastníka repozitáře. Zkontroluj instalaci příslušné GitHub App v [nastavení GitHub aplikací](https://github.com/settings/installations), její přístup k tomuto repozitáři a případné schválení nových oprávnění. Pokud aplikace požadované oprávnění nenabízí, použij vlastní GitHub CLI přihlášení. Nastavení práv workflow v GitHub Actions neopravuje token externího konektoru. Viz [diagnostika GitHub REST API](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#resource-not-accessible).
+GitHub API error **403 `Resource not accessible by integration`** indicates insufficient integration-token permissions for the operation. Repository ownership alone does not establish that the integration can write. Check the relevant GitHub App in [GitHub application settings](https://github.com/settings/installations), its repository access, and any pending permission approval. If the app does not offer the required permission, use your own GitHub CLI authentication. GitHub Actions workflow permissions do not repair an external connector's token. See [GitHub REST API troubleshooting](https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#resource-not-accessible).
 
-`gh auth status` hlásící neplatný token v prostředí bez funkční sítě není samo o sobě důkazem, že token byl na GitHubu revokován. Ověř jej z normálního terminálu s internetem. Obnovení `gh` přihlášení zároveň nezmění token samostatného konektoru. Push musí skončit potvrzením aktualizované vzdálené větve; lokální commit ani úspěšné testy nestačí.
+An invalid-token report from `gh auth status` in an environment without working networking is not conclusive evidence that GitHub revoked the token. Verify it from a normal terminal with internet access. Renewing CLI authentication does not renew a separate connector's token. A completed push must confirm the remote branch update; a local commit or passing tests is insufficient.
 
-## 10. Testy a známé hranice ověření
+## 10. Tests and verification limits
 
 ```bash
 /usr/bin/python3 -m unittest discover -v
 /usr/bin/python3 -m py_compile app.py catalog.py core.py curseforge.py install.py
 ```
 
-Testy pracují s izolovanými falešnými instalacemi a simulovaným API, bez API klíče a bez změn skutečné hry. Ověřují instalaci, aktualizaci, obnovu, lokální změny, odmítnutí nebezpečných ZIPů, výběr verze a kontrolní součty CurseForge. Nevytvářejí grafické okno ani skutečně nestahují addony. End-to-end ověření vyžaduje grafickou relaci, funkční internet, vlastní schválený klíč a vybraný kompatibilní addon; postup je v části 6.
+Tests use isolated fake installations and simulated API responses, without API keys or changes to your actual game. They cover installation, updates, restores, local changes, unsafe ZIP rejection, version selection, and CurseForge checksums. They do not open the graphical interface or download real addons. End-to-end verification requires a desktop session, internet access, your own approved API key, and a selected compatible addon; follow section 6.
 
-Projekt obsahuje skill `wow-forever-addons` v `skill/` a odkaz v `.agents/skills/`. Otevři projekt v Codexu pro jeho použití. Skill používá stejnou příkazovou obsluhu a stejné ochrany jako aplikace.
+The project includes the `wow-forever-addons` skill in `skill/`, linked from `.agents/skills/`. Open the project in Codex to use it. The skill uses the same CLI and protections as the application.

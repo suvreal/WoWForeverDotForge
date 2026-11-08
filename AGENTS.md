@@ -1,5 +1,7 @@
 # Project conventions
 
+- Write all code, comments, interface text, documentation, and contribution messages in English.
+
 - Use `BEL: {MESSAGE}` for pull request titles/messages.
 - Run `python3 -m unittest discover -v` after package-manager changes.
 - Keep credentials, state, addon archives and backups outside the repository.

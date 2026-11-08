@@ -14,42 +14,42 @@ class Catalog:
         self.row_buttons = []
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         page.set_margin_top(12)
-        notebook.append_page(page, Gtk.Label(label='Procházet CurseForge'))
+        notebook.append_page(page, Gtk.Label(label='Browse CurseForge'))
         header = Gtk.Box(spacing=10)
         self.key_status = Gtk.Label(xalign=0, hexpand=True, wrap=True)
         header.append(self.key_status)
-        app.button(header, 'Nastavit API klíč', self.key_dialog)
+        app.button(header, 'Set API key', self.key_dialog)
         page.append(header)
         searchbar = Gtk.Box(spacing=8)
-        self.search_entry = Gtk.Entry(placeholder_text='Název addonu, autor nebo ID projektu…', hexpand=True)
+        self.search_entry = Gtk.Entry(placeholder_text='Addon name, author, or project ID…', hexpand=True)
         self.search_entry.connect('activate', lambda *_: self.search())
         searchbar.append(self.search_entry)
-        self.sort = Gtk.DropDown.new_from_strings(['Oblíbené', 'Naposledy aktualizované', 'Nejvíc stažené'])
+        self.sort = Gtk.DropDown.new_from_strings(['Popular', 'Recently updated', 'Most downloaded'])
         searchbar.append(self.sort)
-        app.button(searchbar, 'Hledat', self.search)
+        app.button(searchbar, 'Search', self.search)
         page.append(searchbar)
         version = game_version(app.manager.interface)
-        page.append(Gtk.Label(label=f'WoW Forever {version} • stabilní vydání • kompatibilita ZIPu se ověří před instalací', xalign=0, wrap=True))
+        page.append(Gtk.Label(label=f'WoW Forever {version} • stable releases • ZIP compatibility is checked before installation', xalign=0, wrap=True))
         self.rows = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         self.rows.add_css_class('boxed-list')
         scroll = Gtk.ScrolledWindow(vexpand=True, min_content_height=250)
         scroll.set_child(self.rows)
         page.append(scroll)
         navigation = Gtk.Box(spacing=8)
-        app.button(navigation, '← Předchozí', lambda: self.page(-1))
+        app.button(navigation, '← Previous', lambda: self.page(-1))
         self.previous = navigation.get_last_child()
-        self.page_label = Gtk.Label(label='Vyhledej addon nebo nech prázdné hledání pro populární addony.', hexpand=True, wrap=True)
+        self.page_label = Gtk.Label(label='Search for an addon, or leave the query empty to browse popular addons.', hexpand=True, wrap=True)
         navigation.append(self.page_label)
-        app.button(navigation, 'Další →', lambda: self.page(1))
+        app.button(navigation, 'Next →', lambda: self.page(1))
         self.next = navigation.get_last_child()
         page.append(navigation)
-        page.append(Gtk.Label(label='CurseForge katalog vyžaduje vlastní API klíč. Povinné závislosti se instalují zvlášť; případně je aplikace vypíše.', wrap=True, xalign=0))
+        page.append(Gtk.Label(label='The CurseForge catalog requires your own API key. Required dependencies are installed separately; missing dependencies will be listed.', wrap=True, xalign=0))
         self.show_key_status()
         self.sync_buttons()
 
     def show_key_status(self):
-        self.key_status.set_text('API klíč je nastavený. Připojení ověří první hledání.' if load_key()
-                                 else 'Pro prohlížení a přímou instalaci nejdřív nastav CurseForge API klíč.')
+        self.key_status.set_text('An API key is configured. The first search will verify access.' if load_key()
+                                 else 'Set your CurseForge API key to browse and install addons directly.')
 
     def sync_buttons(self):
         self.previous.set_sensitive(bool(self.result and self.result['index'] > 0))
@@ -57,7 +57,7 @@ class Catalog:
         for button, row in self.row_buttons:
             button.set_sensitive(row['allowed'])
             key = 'curseforge:' + str(row['id'])
-            button.set_label('Aktualizovat' if key in self.app.manager.state['packages'] else 'Nainstalovat')
+            button.set_label('Update' if key in self.app.manager.state['packages'] else 'Install')
 
     def search(self):
         if self.app.busy:
@@ -81,7 +81,7 @@ class Catalog:
         while self.rows.get_first_child():
             self.rows.remove(self.rows.get_first_child())
         if not result['rows']:
-            self.rows.append(Gtk.Label(label='Žádné výsledky pro tuto verzi hry. Zkus jiné hledání.', margin_top=25, margin_bottom=25))
+            self.rows.append(Gtk.Label(label='No results for this game version. Try a different search.', margin_top=25, margin_bottom=25))
         for row in result['rows']:
             content = Gtk.Box(spacing=14, margin_start=14, margin_end=14, margin_top=12, margin_bottom=12)
             text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5, hexpand=True)
@@ -89,23 +89,23 @@ class Catalog:
             title.add_css_class('heading')
             text.append(title)
             text.append(Gtk.Label(label=row['summary'], xalign=0, wrap=True, max_width_chars=70))
-            info = f"{row['authors']} • {row['downloads']:,.0f} stažení • {row['updated']} • ID {row['id']}"
+            info = f"{row['authors']} • {row['downloads']:,.0f} downloads • {row['updated']} • ID {row['id']}"
             detail = Gtk.Label(label=info, xalign=0, wrap=True)
             detail.add_css_class('dim-label')
             text.append(detail)
             content.append(text)
             actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-            self.app.button(actions, 'Nainstalovat', lambda mid=row['id']: self.app.run_task(lambda: self.app.manager.curseforge(mid)))
+            self.app.button(actions, 'Install', lambda mid=row['id']: self.app.run_task(lambda: self.app.manager.curseforge(mid)))
             install = actions.get_last_child()
             self.row_buttons.append((install, row))
             if not row['allowed']:
-                install.set_tooltip_text('Autor nepovoluje instalaci přes jiné správce. Otevři web a stáhni ZIP ručně.')
-            self.app.button(actions, 'Stránka addonu ↗', lambda url=row['url']: self.open_page(url))
+                install.set_tooltip_text('The author does not allow installation through third-party managers. Open the website and download the ZIP manually.')
+            self.app.button(actions, 'Addon website ↗', lambda url=row['url']: self.open_page(url))
             content.append(actions)
             self.rows.append(content)
         start = result['index'] + 1 if result['count'] else 0
-        self.page_label.set_text(f"{start}–{result['index'] + result['count']} z {result['total']} výsledků")
-        return f"Katalog CurseForge • WoW {result['version']} • načteno {len(result['rows'])} addonů"
+        self.page_label.set_text(f"{start}–{result['index'] + result['count']} of {result['total']} results")
+        return f"CurseForge catalog • WoW {result['version']} • loaded {len(result['rows'])} addons"
 
     def open_page(self, url):
         parsed = urllib.parse.urlsplit(url)
@@ -113,22 +113,22 @@ class Catalog:
             webbrowser.open(url)
 
     def key_dialog(self):
-        dialog = Gtk.Dialog(title='Připojit CurseForge katalog', transient_for=self.app.get_active_window(), modal=True)
+        dialog = Gtk.Dialog(title='Connect to the CurseForge catalog', transient_for=self.app.get_active_window(), modal=True)
         dialog.set_default_size(560, 260)
-        dialog.add_button('Zrušit', Gtk.ResponseType.CANCEL)
-        dialog.add_button('Uložit', Gtk.ResponseType.ACCEPT)
+        dialog.add_button('Cancel', Gtk.ResponseType.CANCEL)
+        dialog.add_button('Save', Gtk.ResponseType.ACCEPT)
         box = dialog.get_content_area()
         box.set_spacing(12)
         for side in ['top', 'bottom', 'start', 'end']:
             getattr(box, 'set_margin_' + side)(18)
-        box.append(Gtk.Label(label='Vlož svůj CurseForge API klíč. Klíč se neposílá do GitHubu ani do chatu.', wrap=True, xalign=0))
+        box.append(Gtk.Label(label='Enter your CurseForge API key. It is never sent to GitHub or the chat.', wrap=True, xalign=0))
         entry = Gtk.PasswordEntry(show_peek_icon=True, hexpand=True)
         box.append(entry)
-        box.append(Gtk.Label(label='Nový klíč nahradí uložený. Prázdné pole ponechá současný klíč.', wrap=True, xalign=0))
-        box.append(Gtk.Label(label=f'Lokální soubor pouze pro tvého uživatele: {KEY_FILE}', wrap=True, xalign=0, selectable=True))
-        link = Gtk.LinkButton(uri='https://docs.curseforge.com/rest-api/#getting-started', label='Jak požádat o vlastní API klíč ↗')
+        box.append(Gtk.Label(label='A new key replaces the saved key. Leave the field empty to keep the current key.', wrap=True, xalign=0))
+        box.append(Gtk.Label(label=f'Local file readable only by your user: {KEY_FILE}', wrap=True, xalign=0, selectable=True))
+        link = Gtk.LinkButton(uri='https://docs.curseforge.com/rest-api/#getting-started', label='How to request your own API key ↗')
         box.append(link)
-        forget = Gtk.CheckButton(label='Zapomenout uložený klíč')
+        forget = Gtk.CheckButton(label='Forget the saved key')
         box.append(forget)
         def response(d, code):
             if code == Gtk.ResponseType.ACCEPT:
@@ -139,9 +139,9 @@ class Catalog:
                     elif value:
                         save_key(value)
                     self.show_key_status()
-                    self.app.log.get_buffer().set_text('Nastavení klíče uloženo. Pro načtení katalogu stiskni Hledat.')
+                    self.app.log.get_buffer().set_text('API key settings saved. Click Search to load the catalog.')
                 except Exception as error:
-                    self.app.log.get_buffer().set_text('Klíč se nepodařilo uložit: ' + str(error))
+                    self.app.log.get_buffer().set_text('Unable to save the key: ' + str(error))
             entry.set_text('')
             d.destroy()
         dialog.connect('response', response)
